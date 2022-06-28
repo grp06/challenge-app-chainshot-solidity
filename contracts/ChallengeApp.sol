@@ -17,6 +17,7 @@ contract ChallengeApp {
 
     struct ChallengeStruct {
         address owner;
+        string ownerName;
         string challengeName;
         string description;
         uint256 numWeeks;
@@ -26,29 +27,31 @@ contract ChallengeApp {
         string zoomLink;
         string weeklyMeetingTime;
         uint256 challengeId;
-        address[] participants;
+        address[] participantAddresses;
+        string[] participantNames;
     }
 
-    struct ParticipantStruct {
-        string name;
-        uint256 originalDeposit;
-    }
     mapping(string => ChallengeStruct) challengeStructs;
 
     mapping(string => uint256) public challengeBalances;
 
-    address[] participantIndex;
-
     function createChallenge(
         string memory challengeName,
+        string memory ownerName,
         uint256 numWeeks,
         string memory description,
         string memory zoomLink,
         string memory weeklyMeetingTime
-    ) external returns (bool) {
-        address[] memory participants;
+    ) external payable returns (bool) {
+        address[] memory participantAddresses;
+        string[] memory participantNames;
+        require(
+            !challengeStructs[challengeName].exists,
+            "Challenge already exists, pick a new name"
+        );
         ChallengeStruct memory newChallenge = ChallengeStruct({
             owner: msg.sender,
+            ownerName: ownerName,
             challengeName: challengeName,
             description: description,
             numWeeks: numWeeks,
@@ -58,40 +61,38 @@ contract ChallengeApp {
             zoomLink: zoomLink,
             weeklyMeetingTime: weeklyMeetingTime,
             challengeId: challengeIds += 1,
-            participants: participants
+            participantAddresses: participantAddresses,
+            participantNames: participantNames
         });
         challengeIds++;
         challengeStructs[challengeName] = newChallenge;
+        joinChallenge(challengeName, ownerName);
         return true;
     }
 
     function getTotalEthDeposited(string memory challengeName)
-        external
+        internal
         view
         returns (uint256)
     {
         return challengeBalances[challengeName];
     }
 
-    function getParticpantCount() public view returns (uint256) {
-        return participantIndex.length;
-    }
-
     function deposit(uint256 amount) public payable {
         require(msg.value == amount);
     }
 
-    function joinChallenge(string memory challengeName, uint256 amount)
+    function joinChallenge(string memory challengeName, string memory name)
         public
         payable
     {
-        deposit(amount);
-        challengeStructs[challengeName].participants.push(msg.sender);
+        deposit(msg.value);
+        challengeStructs[challengeName].participantAddresses.push(msg.sender);
+        challengeStructs[challengeName].participantNames.push(name);
         challengeBalances[challengeName] += msg.value;
-        participantIndex.push(msg.sender);
     }
 
-    function getContractBalance() external view returns (uint256) {
+    function getContractBalance() internal view returns (uint256) {
         return address(this).balance;
     }
 
@@ -130,19 +131,19 @@ contract ChallengeApp {
         challengeStructs[challengeName].ended = true;
     }
 
-    // function getParticipant(address participantAddress)
-    //     public
-    //     view
-    //     returns (ParticipantStruct memory)
-    // {
-    //     return participantStructs[participantAddress];
-    // }
-
     function getChallenge(string memory challengeName)
         public
         view
-        returns (ChallengeStruct memory)
+        returns (
+            ChallengeStruct memory,
+            uint256,
+            uint256
+        )
     {
-        return challengeStructs[challengeName];
+        return (
+            challengeStructs[challengeName],
+            getContractBalance(),
+            getTotalEthDeposited((challengeName))
+        );
     }
 }
