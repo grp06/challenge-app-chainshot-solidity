@@ -14,12 +14,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const BasicAAVE = await hre.ethers.getContractFactory("BasicAAVE");
-  const basicAAVE = await BasicAAVE.deploy();
+  const ChallengeApp = await hre.ethers.getContractFactory("ChallengeApp");
+  const challengeApp = await ChallengeApp.deploy();
 
-  await basicAAVE.deployed();
+  await challengeApp.deployed();
 
-  console.log("basicAAVE deployed to:", basicAAVE.address);
+  console.log("challengeApp deployed to:", challengeApp.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
